@@ -1,5 +1,5 @@
-from sqlmodel from SQLModel
-from datetime from datetime 
+from sqlmodel import SQLModel
+from datetime import datetime
 
 class RoadmapCreate(SQLModel):
     title: str
@@ -10,5 +10,3 @@ class RoadmapRead(SQLModel):
     title: str
     description: str | None = None
     created_at: datetime
-
-

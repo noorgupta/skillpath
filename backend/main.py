@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import create_db_and_tables
-from routers import roadmaps
+from routers import roadmaps, modules, topics
 
 app = FastAPI(title="SkillPath API")
 
@@ -13,6 +13,8 @@ app.add_middleware(
 )
 
 app.include_router(roadmaps.router)
+app.include_router(modules.router)
+app.include_router(topics.router)
 
 @app.on_event("startup")
 def on_startup():

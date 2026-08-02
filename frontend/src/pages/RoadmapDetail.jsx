@@ -30,32 +30,28 @@ function RoadmapDetail() {
   const [editTopicTitle, setEditTopicTitle] = useState("");
 
   const loadData = async (isInitial = false) => {
-  if (isInitial) setLoading(true);
-  setError(null);
-  try {
-    const roadmapData = await getRoadmap(id);
-    const moduleList = await getModules(id);
-    const modulesWithTopics = await Promise.all(
-      moduleList.map(async (m) => {
-        const topics = await getTopics(m.id);
-        return { ...m, topics };
-      })
-    );
-    setRoadmap(roadmapData);
-    setModules(modulesWithTopics);
-  } catch (err) {
-    setError("Failed to load roadmap. Is the backend running?");
-  } finally {
-    if (isInitial) setLoading(false);
-  }
-};
-
-useEffect(() => {
-  loadData(true);  // only the very first load shows the loading screen
-}, [id]);
+    if (isInitial) setLoading(true);
+    setError(null);
+    try {
+      const roadmapData = await getRoadmap(id);
+      const moduleList = await getModules(id);
+      const modulesWithTopics = await Promise.all(
+        moduleList.map(async (m) => {
+          const topics = await getTopics(m.id);
+          return { ...m, topics };
+        })
+      );
+      setRoadmap(roadmapData);
+      setModules(modulesWithTopics);
+    } catch (err) {
+      setError("Failed to load roadmap. Is the backend running?");
+    } finally {
+      if (isInitial) setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [id]);
 
   const handleCreateModule = async (e) => {
@@ -83,22 +79,6 @@ useEffect(() => {
   };
 
   const handleToggle = async (topicId) => {
-  // Optimistically update the UI immediately, before the API call finishes
-  setModules((prevModules) =>
-    prevModules.map((m) => ({
-      ...m,
-      topics: m.topics.map((t) =>
-        t.id === topicId ? { ...t, is_completed: !t.is_completed } : t
-      ),
-    }))
-  );
-
-  try {
-    await toggleTopic(topicId);
-    // success — local state already matches the server, nothing more to do
-  } catch (err) {
-    setError("Failed to update topic.");
-    // roll back the optimistic change since the API call failed
     setModules((prevModules) =>
       prevModules.map((m) => ({
         ...m,
@@ -107,8 +87,22 @@ useEffect(() => {
         ),
       }))
     );
-  }
-};
+
+    try {
+      await toggleTopic(topicId);
+    } catch (err) {
+      setError("Failed to update topic.");
+      setModules((prevModules) =>
+        prevModules.map((m) => ({
+          ...m,
+          topics: m.topics.map((t) =>
+            t.id === topicId ? { ...t, is_completed: !t.is_completed } : t
+          ),
+        }))
+      );
+    }
+  };
+
   const handleDeleteModule = async (moduleId) => {
     try {
       await deleteModule(moduleId);
@@ -167,98 +161,131 @@ useEffect(() => {
     }
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (!roadmap) return <p>Roadmap not found.</p>;
+  const moduleProgress = (m) => {
+    if (m.topics.length === 0) return 0;
+    return Math.round((m.topics.filter((t) => t.is_completed).length / m.topics.length) * 100);
+  };
+
+  if (loading) return <div className="page"><p className="page-subtitle">Loading…</p></div>;
+  if (!roadmap) return <div className="page"><p className="page-subtitle">Roadmap not found.</p></div>;
 
   return (
-    <div style={{ maxWidth: 700, margin: "40px auto", padding: "0 16px" }}>
-      <Link to="/">&larr; Back to Dashboard</Link>
-      <h1>{roadmap.title}</h1>
-      <p>{roadmap.description}</p>
+    <div className="page">
+      <Link to="/" className="back-link">&larr; Back to dashboard</Link>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <div className="page-header">
+        <span className="eyebrow">Roadmap</span>
+        <h1 className="page-title">{roadmap.title}</h1>
+        {roadmap.description && <p className="page-subtitle">{roadmap.description}</p>}
+      </div>
 
-      <form onSubmit={handleCreateModule} style={{ marginBottom: 24 }}>
+      {error && <div className="error-banner">{error}</div>}
+
+      <form onSubmit={handleCreateModule} className="form-row" style={{ marginBottom: 32 }}>
         <input
+          className="text-input"
           placeholder="New module title"
           value={newModuleTitle}
           onChange={(e) => setNewModuleTitle(e.target.value)}
         />
-        <button type="submit">Add Module</button>
+        <button type="submit" className="btn btn-primary">Add module</button>
       </form>
 
-      {modules.length === 0 && <p>No modules yet — add one above.</p>}
-
-      {modules.map((m) => (
-        <div key={m.id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 16, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            {editingModuleId === m.id ? (
-              <input
-                value={editModuleTitle}
-                onChange={(e) => setEditModuleTitle(e.target.value)}
-                autoFocus
-              />
-            ) : (
-              <h3 style={{ margin: 0 }}>{m.title}</h3>
-            )}
-
-            {editingModuleId === m.id ? (
-              <>
-                <button onClick={() => saveEditModule(m.id)}>Save</button>
-                <button onClick={() => setEditingModuleId(null)}>Cancel</button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => startEditModule(m)} style={{ fontSize: 12 }}>Edit</button>
-                <button onClick={() => handleDeleteModule(m.id)} style={{ fontSize: 12 }}>Delete Module</button>
-              </>
-            )}
-          </div>
-
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {m.topics.map((t) => (
-              <li key={t.id} style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={t.is_completed}
-                  onChange={() => handleToggle(t.id)}
-                />
-
-                {editingTopicId === t.id ? (
-                  <input
-                    value={editTopicTitle}
-                    onChange={(e) => setEditTopicTitle(e.target.value)}
-                    autoFocus
-                  />
-                ) : (
-                  <span style={{ textDecoration: t.is_completed ? "line-through" : "none" }}>
-                    {t.title}
-                  </span>
-                )}
-
-                {editingTopicId === t.id ? (
-                  <>
-                    <button onClick={() => saveEditTopic(t.id)} style={{ fontSize: 12 }}>Save</button>
-                    <button onClick={() => setEditingTopicId(null)} style={{ fontSize: 12 }}>Cancel</button>
-                  </>
-                ) : (
-                  <>
-                    <button onClick={() => startEditTopic(t)} style={{ fontSize: 12 }}>Edit</button>
-                    <button onClick={() => handleDeleteTopic(t.id)} style={{ fontSize: 12 }}>Delete</button>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <input
-            placeholder="New topic title"
-            value={newTopicTitles[m.id] || ""}
-            onChange={(e) => setNewTopicTitles({ ...newTopicTitles, [m.id]: e.target.value })}
-          />
-          <button onClick={() => handleCreateTopic(m.id)}>Add Topic</button>
+      {modules.length === 0 && (
+        <div className="empty-state">
+          <svg className="empty-state-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7 L12 12 L15 15" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div className="empty-state-title">No modules yet</div>
+          <div className="empty-state-text">Add your first module above to start building this roadmap.</div>
         </div>
-      ))}
+      )}
+
+      <div className="trail">
+        {modules.map((m) => {
+          const progress = moduleProgress(m);
+          return (
+            <div key={m.id} className="module-block">
+              <div className={`module-waypoint ${progress === 100 ? "complete" : ""}`} />
+              <div className="module-card">
+                <div className="module-header">
+                  {editingModuleId === m.id ? (
+                    <input
+                      className="text-input"
+                      value={editModuleTitle}
+                      onChange={(e) => setEditModuleTitle(e.target.value)}
+                      autoFocus
+                    />
+                  ) : (
+                    <h3 className="module-title">{m.title}</h3>
+                  )}
+
+                  <div className="module-actions">
+                    {editingModuleId === m.id ? (
+                      <>
+                        <button onClick={() => saveEditModule(m.id)} className="btn-text">Save</button>
+                        <button onClick={() => setEditingModuleId(null)} className="btn-text">Cancel</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => startEditModule(m)} className="btn-text">Edit</button>
+                        <button onClick={() => handleDeleteModule(m.id)} className="btn-danger-text">Delete</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <ul className="topic-list">
+                  {m.topics.map((t) => (
+                    <li key={t.id} className="topic-item">
+                      <input
+                        type="checkbox"
+                        className="topic-checkbox"
+                        checked={t.is_completed}
+                        onChange={() => handleToggle(t.id)}
+                      />
+
+                      {editingTopicId === t.id ? (
+                        <input
+                          className="text-input"
+                          value={editTopicTitle}
+                          onChange={(e) => setEditTopicTitle(e.target.value)}
+                          autoFocus
+                        />
+                      ) : (
+                        <span className={`topic-title ${t.is_completed ? "done" : ""}`}>{t.title}</span>
+                      )}
+
+                      {editingTopicId === t.id ? (
+                        <>
+                          <button onClick={() => saveEditTopic(t.id)} className="btn-text">Save</button>
+                          <button onClick={() => setEditingTopicId(null)} className="btn-text">Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => startEditTopic(t)} className="btn-text">Edit</button>
+                          <button onClick={() => handleDeleteTopic(t.id)} className="btn-danger-text">Delete</button>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="topic-add-row">
+                  <input
+                    className="text-input"
+                    placeholder="New topic title"
+                    value={newTopicTitles[m.id] || ""}
+                    onChange={(e) => setNewTopicTitles({ ...newTopicTitles, [m.id]: e.target.value })}
+                  />
+                  <button onClick={() => handleCreateTopic(m.id)} className="btn btn-ghost">Add topic</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

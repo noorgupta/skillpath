@@ -83,8 +83,14 @@ function Dashboard() {
       </form>
 
       {roadmaps.length === 0 && (
-        <div className="empty-state">No roadmaps yet — create your first one above.</div>
-      )}
+  <div className="empty-state">
+    <svg className="empty-state-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M12 2 L4 20 L12 16 L20 20 Z" strokeLinejoin="round" />
+    </svg>
+    <div className="empty-state-title">No roadmaps yet</div>
+    <div className="empty-state-text">Create one above to start tracking what you're learning.</div>
+  </div>
+)}
 
       {roadmaps.map((r) => (
         <div key={r.id} className="roadmap-card">

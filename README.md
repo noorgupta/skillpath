@@ -28,7 +28,17 @@
 
 ---
 
-![Dashboard](screenshots/dashboard.png)
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/1545c3de-a383-4fbf-82a6-daf0d6c392ea"
+    alt="SkillPath Dashboard"
+    width="900"
+  />
+</p>
+
+<p align="center">
+  <em>Dashboard — Create learning roadmaps, organize modules and topics, and track progress in one place.</em>
+</p>
 
 ## Why I Built This
 
@@ -57,7 +67,7 @@ Interestingly, the roadmap for learning FastAPI itself was tracked using SkillPa
 
 | Dashboard | Roadmap Details |
 |-----------|-----------------|
-| ![](screenshots/dashboard.png) | ![](screenshots/roadmap-detail.png) |
+|<img width="1886" height="924" alt="Screenshot from 2026-08-03 16-18-09" src="https://github.com/user-attachments/assets/d9749520-99b7-45fa-ba08-88fcc4e24b28" /> | <img width="1886" height="924" alt="Screenshot from 2026-08-03 16-17-53" src="https://github.com/user-attachments/assets/00f7297a-9fc9-4b0b-bf8d-f4e3cfcf7809" />
 
 ---
 
